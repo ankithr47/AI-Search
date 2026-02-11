@@ -355,11 +355,107 @@ added_note = ""
 ############
 ############ END OF SECTOR 9 (IGNORE THIS COMMENT)
 
+pop_size = 1000
+random.seed(42)
+
+#create initial population of random valid tours
+def initial_pop(num_cities, pop_size):
+    population = []
+    for i in range(pop_size):
+        tour = random.sample(range(1, num_cities + 1), k=num_cities)
+        population.append(tour)
+    return population
+
+population = initial_pop(num_cities, pop_size)
+print(population[0])
+
+#calculate path cost of an individual tour
+def path_cost(tour, dist_matrix):
+    total = 0
+    for i in range(len(tour) - 1):
+        total += dist_matrix[tour[i]-1][tour[i+1]-1]
+    total += dist_matrix[tour[-1]-1][tour[0]-1]
+    return total
+cost1 = path_cost(population[0], dist_matrix)
+print(cost1)
+
+#calculate array of path costs for the population
+def pop_cost(population, dist_matrix):
+    cost_array = []
+    for tour in population:
+        cost_array.append(path_cost(tour, dist_matrix=dist_matrix))
+    return cost_array
+costs = pop_cost(population=population, dist_matrix=dist_matrix)
+#print(costs)
+
+#calculate fitness of array of path costws
+def fitness_array(costs):
+    epsilon = 1e-5
+    tau = max(costs) + epsilon
+    fit_arr = []
+    for cost in costs:
+        fitness = tau - cost
+        fit_arr.append(fitness)
+    return fit_arr
+
+fitness = fitness_array(costs=costs)
+
+#normalise the fitness array in probability
+def normalise(fitness):
+    total = sum(fitness)
+    for i in range(len(fitness)):
+        fitness[i] = float(fitness[i] / total)
+    return fitness
+
+probabilities = normalise(fitness=fitness)
+
+def make_distinct(child):
+    used = set()
+    next_candidate = 1
+    for i in range(len(child)):
+        if child[i] not in used:
+            used.add(child[i])
+        else:
+            while next_candidate in used:
+                next_candidate += 1
+            child[i] = next_candidate
+            used.add(next_candidate)
+    return child
+
+print(make_distinct([1, 4, 4, 5, 1]))
+
+def new_pop(population, probabilities, dist_matrix):
+    new_population = []
+    parents = random.choices(population, probabilities, k=2000)
+    for i in range(0, len(parents)-1, 2):
+        A = parents[i]
+        B = parents[i+1]
+        # 1 4 3 5 6 8, 2 5 7 8 9 6, slicing [:len(array)] includes everything up to and excluding len(array), ie only up to len(array)-1
+        split_index = random.randint(1, len(A) - 1)
+        A1 = parents[i][:split_index]
+        A2 = parents[i][split_index:]
+        B1 = parents[i+1][:split_index]
+        B2 = parents[i+1][split_index:]
+        #combine the splits
+        C1 = A1 + B2
+        C2 = B1 + A2
+
+        #make splits valid tours
+        C1 = make_distinct(C1)
+        C2 = make_distinct(C2)
+
+        P1 = path_cost(C1, dist_matrix)
+        P2 = path_cost(C2, dist_matrix)
+        chosen_child = C1
+        if min(P1, P2) == P2:
+            chosen_child = C2
+        new_population.append(chosen_child)
+    return new_population
+
+print(new_pop(population=population, probabilities=probabilities, dist_matrix=dist_matrix))
 
 
-
-
-
+# python3 AlgAbasic.py
 
 
 
