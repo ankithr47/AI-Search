@@ -422,7 +422,13 @@ def make_distinct(child):
             used.add(next_candidate)
     return child
 
-print(make_distinct([1, 4, 4, 5, 1]))
+def mutate(child):
+    i, j = random.sample(range(len(child)), 2)
+    child[i], child[j] = child[j], child[i]
+    return child
+
+print(make_distinct([2, 1, 2, 3, 5, 3]))
+print(mutate(make_distinct([2, 1, 2, 3, 5, 3])))
 
 def new_pop(population, probabilities, dist_matrix):
     new_population = []
@@ -444,16 +450,17 @@ def new_pop(population, probabilities, dist_matrix):
         C1 = make_distinct(C1)
         C2 = make_distinct(C2)
 
+
+
         P1 = path_cost(C1, dist_matrix)
         P2 = path_cost(C2, dist_matrix)
         chosen_child = C1
         if min(P1, P2) == P2:
             chosen_child = C2
         new_population.append(chosen_child)
+
+        # NEED TO ADD MUTATION HERE, DO NOT FORGET!!!!!!!!
     return new_population
-
-print(new_pop(population=population, probabilities=probabilities, dist_matrix=dist_matrix))
-
 
 # python3 AlgAbasic.py
 
