@@ -425,8 +425,9 @@ def make_distinct(child):
 def mutate(child):
     i, j = random.sample(range(len(child)), 2)
     child[i], child[j] = child[j], child[i]
-    return 
+    return child
 
+'''
 x = make_distinct([2, 1, 2, 3, 5, 3])
 print(x)
 print(mutate(x))
@@ -434,6 +435,7 @@ print(mutate(x))
 print(mutate(x))
 print(mutate(x))
 print(mutate(x))
+'''
 
 def new_pop(population, probabilities, dist_matrix):
     new_population = []
@@ -468,6 +470,7 @@ def new_pop(population, probabilities, dist_matrix):
     return new_population
 
 print(new_pop(population, probabilities, dist_matrix))
+#print(population)
 
 
 # python3 AlgAbasic.py
