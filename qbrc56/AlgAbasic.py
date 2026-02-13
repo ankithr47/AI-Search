@@ -355,6 +355,9 @@ added_note = ""
 ############
 ############ END OF SECTOR 9 (IGNORE THIS COMMENT)
 
+import heapq
+import copy
+
 pop_size = 1000
 generations = 500
 random.seed(42)
@@ -427,11 +430,14 @@ print(mutate(x))
 print(mutate(x))
 '''
 
-def new_pop(population, probabilities, dist_matrix):
+def new_pop(population, probabilities, costs, dist_matrix):
     new_population = []
-    sorted_population = sorted(population, key=lambda t: path_cost(t, dist_matrix=dist_matrix))
-    new_population = new_population + sorted_population[:10]
-    parents = random.choices(population, probabilities, k=2000)
+
+    elite_pairs = heapq.nsmallest(10, zip(costs, population))
+    elite = [tour.copy() for cost, tour in elite_pairs]
+    new_population = new_population + elite
+
+    parents = random.choices(population, probabilities, k=1980)
     for i in range(0, len(parents)-1, 2):
         A = parents[i]
         B = parents[i+1]
@@ -469,17 +475,20 @@ fitness = fitness_array(population_cost)
 probabilities = normalise(fitness=fitness)
 
 for i in range(generations):
-    pop = new_pop(population=pop, probabilities=probabilities, dist_matrix=dist_matrix)
+    pop = new_pop(population=pop, probabilities=probabilities, costs=population_cost, dist_matrix=dist_matrix)
     population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
     fitness = fitness_array(population_cost)
     probabilities = normalise(fitness=fitness)
 
 
-sorted_pop = sorted(pop, key=lambda t: path_cost(t, dist_matrix=dist_matrix))
-print(sorted_pop[:5])
-print(pop_cost(sorted_pop[:5], dist_matrix=dist_matrix))
+final = heapq.nsmallest(5, zip(population_cost, pop))
+final_tours = [tour for cost, tour in final]
+final_costs = [cost for cost, tour in final]
+print(final_tours)
+print(final_costs)
 #print(population)
 
+# ADD TIMEOUT FUNCTIONALITY, TO ENSURE CORRECTNESS AS CORRECTNESS IS MOST VITAL HERE
 
 # python3 AlgAbasic.py
 
