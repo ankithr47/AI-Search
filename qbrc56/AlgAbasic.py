@@ -356,6 +356,7 @@ added_note = ""
 ############ END OF SECTOR 9 (IGNORE THIS COMMENT)
 
 pop_size = 1000
+generations = 500
 random.seed(42)
 
 #create initial population of random valid tours
@@ -366,9 +367,6 @@ def initial_pop(num_cities, pop_size):
         population.append(tour)
     return population
 
-population = initial_pop(num_cities, pop_size)
-print(population[0])
-
 #calculate path cost of an individual tour
 def path_cost(tour, dist_matrix):
     total = 0
@@ -376,8 +374,6 @@ def path_cost(tour, dist_matrix):
         total += dist_matrix[tour[i]-1][tour[i+1]-1]
     total += dist_matrix[tour[-1]-1][tour[0]-1]
     return total
-cost1 = path_cost(population[0], dist_matrix)
-print(cost1)
 
 #calculate array of path costs for the population
 def pop_cost(population, dist_matrix):
@@ -385,8 +381,6 @@ def pop_cost(population, dist_matrix):
     for tour in population:
         cost_array.append(path_cost(tour, dist_matrix=dist_matrix))
     return cost_array
-costs = pop_cost(population=population, dist_matrix=dist_matrix)
-#print(costs)
 
 #calculate fitness of array of path costws
 def fitness_array(costs):
@@ -398,16 +392,12 @@ def fitness_array(costs):
         fit_arr.append(fitness)
     return fit_arr
 
-fitness = fitness_array(costs=costs)
-
 #normalise the fitness array in probability
 def normalise(fitness):
     total = sum(fitness)
     for i in range(len(fitness)):
         fitness[i] = float(fitness[i] / total)
     return fitness
-
-probabilities = normalise(fitness=fitness)
 
 def make_distinct(child):
     used = set()
@@ -439,6 +429,8 @@ print(mutate(x))
 
 def new_pop(population, probabilities, dist_matrix):
     new_population = []
+    sorted_population = sorted(population, key=lambda t: path_cost(t, dist_matrix=dist_matrix))
+    new_population = new_population + sorted_population[:10]
     parents = random.choices(population, probabilities, k=2000)
     for i in range(0, len(parents)-1, 2):
         A = parents[i]
@@ -457,8 +449,10 @@ def new_pop(population, probabilities, dist_matrix):
         C1 = make_distinct(C1)
         C2 = make_distinct(C2)
 
-        C1 = mutate(C1)
-        C2 = mutate(C2)
+        if random.random() < 0.05:
+            C1 = mutate(C1)
+        if random.random() < 0.05:
+            C2 = mutate(C2)
 
         P1 = path_cost(C1, dist_matrix)
         P2 = path_cost(C2, dist_matrix)
@@ -469,7 +463,21 @@ def new_pop(population, probabilities, dist_matrix):
 
     return new_population
 
-print(new_pop(population, probabilities, dist_matrix))
+pop = initial_pop(pop_size=pop_size, num_cities=num_cities)
+population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
+fitness = fitness_array(population_cost)
+probabilities = normalise(fitness=fitness)
+
+for i in range(generations):
+    pop = new_pop(population=pop, probabilities=probabilities, dist_matrix=dist_matrix)
+    population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
+    fitness = fitness_array(population_cost)
+    probabilities = normalise(fitness=fitness)
+
+
+sorted_pop = sorted(pop, key=lambda t: path_cost(t, dist_matrix=dist_matrix))
+print(sorted_pop[:5])
+print(pop_cost(sorted_pop[:5], dist_matrix=dist_matrix))
 #print(population)
 
 
