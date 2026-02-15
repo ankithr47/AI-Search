@@ -1,0 +1,8 @@
+USER = qbrc56 (Ankith Rangan),
+ALGORITHM CODE = GA, NAME OF CITY-FILE = AISearchfile048.txt,
+SIZE = 48, TOUR LENGTH = 19034,
+41,5,46,35,36,2,29,26,12,13,39,24,14,33,40,37,31,0,23,34,1,30,17,47,27,6,3,15,16,19,20,21,9,18,7,4,10,28,43,22,32,38,8,11,45,25,42,44,
+NOTE = The parameter values are 'max_it' = 500 and 'pop_size' = 1000.
+RUN-TIME = 10.6 seconds.
+DATE-TIME = 15/02/2026-12:54:41.
+CERTIFICATE = 2335.

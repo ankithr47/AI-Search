@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile012.txt"
+input_file = "AISearchfile535.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -359,14 +359,14 @@ import heapq
 import copy
 
 pop_size = 1000
-generations = 500
+max_it = 500
 random.seed(42)
 
 #create initial population of random valid tours
 def initial_pop(num_cities, pop_size):
     population = []
     for i in range(pop_size):
-        tour = random.sample(range(1, num_cities + 1), k=num_cities)
+        tour = random.sample(range(num_cities), k=num_cities)
         population.append(tour)
     return population
 
@@ -374,8 +374,8 @@ def initial_pop(num_cities, pop_size):
 def path_cost(tour, dist_matrix):
     total = 0
     for i in range(len(tour) - 1):
-        total += dist_matrix[tour[i]-1][tour[i+1]-1]
-    total += dist_matrix[tour[-1]-1][tour[0]-1]
+        total += dist_matrix[tour[i]][tour[i+1]]
+    total += dist_matrix[tour[-1]][tour[0]]
     return total
 
 #calculate array of path costs for the population
@@ -404,7 +404,7 @@ def normalise(fitness):
 
 def make_distinct(child):
     used = set()
-    next_candidate = 1
+    next_candidate = 0
     for i in range(len(child)):
         if child[i] not in used:
             used.add(child[i])
@@ -474,7 +474,7 @@ population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
 fitness = fitness_array(population_cost)
 probabilities = normalise(fitness=fitness)
 
-for i in range(generations):
+for i in range(max_it):
     pop = new_pop(population=pop, probabilities=probabilities, costs=population_cost, dist_matrix=dist_matrix)
     population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
     fitness = fitness_array(population_cost)
@@ -486,6 +486,8 @@ final_tours = [tour for cost, tour in final]
 final_costs = [cost for cost, tour in final]
 print(final_tours)
 print(final_costs)
+tour = final_tours[0]
+tour_length = final_costs[0]
 #print(population)
 
 # ADD TIMEOUT FUNCTIONALITY, TO ENSURE CORRECTNESS AS CORRECTNESS IS MOST VITAL HERE
