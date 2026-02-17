@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile012.txt"
+input_file = "AISearchfile175.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -463,12 +463,10 @@ def new_pop(population, probabilities, costs, dist_matrix):
         if random.random() < 0.05:
             C2 = mutate(C2)
 
-        P1 = path_cost(C1, dist_matrix)
-        P2 = path_cost(C2, dist_matrix)
-        chosen_child = C1
-        if min(P1, P2) == P2:
-            chosen_child = C2
-        new_population.append(chosen_child)
+        if path_cost(C1, dist_matrix) < path_cost(C2, dist_matrix):
+            new_population.append(C1)
+        else:
+            new_population.append(C2)
 
     return new_population
 
@@ -487,8 +485,6 @@ for i in range(max_it):
 final = heapq.nsmallest(5, zip(population_cost, pop))
 final_tours = [tour for cost, tour in final]
 final_costs = [cost for cost, tour in final]
-print(final_tours)
-print(final_costs)
 tour = final_tours[0]
 tour_length = final_costs[0]
 #print(population)
