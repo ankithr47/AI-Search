@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile535.txt"
+input_file = "AISearchfile012.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -429,6 +429,16 @@ print(mutate(x))
 print(mutate(x))
 print(mutate(x))
 '''
+def crossover(A, B):
+    split_index = random.randint(1, len(A) - 1)
+    A1 = A[:split_index]
+    A2 = A[split_index:]
+    B1 = B[:split_index]
+    B2 = B[split_index:]
+    #combine the splits
+    C1 = A1 + B2
+    C2 = B1 + A2
+    return C1, C2
 
 def new_pop(population, probabilities, costs, dist_matrix):
     new_population = []
@@ -442,14 +452,7 @@ def new_pop(population, probabilities, costs, dist_matrix):
         A = parents[i]
         B = parents[i+1]
         # 1 4 3 5 6 8, 2 5 7 8 9 6, slicing [:len(array)] includes everything up to and excluding len(array), ie only up to len(array)-1
-        split_index = random.randint(1, len(A) - 1)
-        A1 = parents[i][:split_index]
-        A2 = parents[i][split_index:]
-        B1 = parents[i+1][:split_index]
-        B2 = parents[i+1][split_index:]
-        #combine the splits
-        C1 = A1 + B2
-        C2 = B1 + A2
+        C1, C2 = crossover(A, B)
 
         #make splits valid tours
         C1 = make_distinct(C1)
