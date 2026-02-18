@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile175.txt"
+input_file = "AISearchfile017.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -422,15 +422,31 @@ def mutate(child):
     child[i], child[j] = child[j], child[i]
     return child
 
+def inverse_mutate(child):
+    n = len(child)
+    i = random.randint(0, n-2)
+    j = random.randint(i+1, n-1)
+    child[i:j+1] = child[i:j+1][::-1]
+    return child
 '''
-x = make_distinct([2, 1, 2, 3, 5, 3])
-print(x)
-print(mutate(x))
-print(mutate(x))
-print(mutate(x))
-print(mutate(x))
-print(mutate(x))
+print(inverse_mutate([1, 5, 9, 8, 2, 3]))
+print(inverse_mutate([2, 5, 4, 3, 7, 6]))
 '''
+
+def mutate_rate_adapt_fit(best_fitness_current, best_fitness_global, stagnation_count, stagnation_limit, pm, pm_min, pm_max):
+    epsilon = 1e-12
+    if best_fitness_current > best_fitness_global + epsilon:
+        best_fitness_global = best_fitness_current
+        stagnation_count = 0
+    else:
+        stagnation_count += 1
+    
+    if stagnation_count > stagnation_limit:
+        pm = min(pm * 1.2, pm_max)
+    else:
+        pm = max(pm*0.98, pm_min)
+    return best_fitness_global, stagnation_count, pm
+
 def one_point_crossover(A, B):
     split_index = random.randint(1, len(A) - 1)
     A1 = A[:split_index]
@@ -457,6 +473,76 @@ def OX_crossover(A,B):
     seg1 = remaining_filtered[after_len:]
     result = seg1 + A_mid + seg2
     return result
+
+def ERX_crossover(A, B):
+    n = len(A)
+    edge_table = {}
+
+    for c in range(n):
+        edge_table[c] = set()
+
+    for i in range(n):
+        left = A[(i-1) % n]
+        right = A[(i+1) % n]
+        edge_table[A[i]].add(left)
+        edge_table[A[i]].add(right)
+    
+    for i in range(n):
+        left = B[(i-1) % n]
+        right = B[(i+1) % n]
+        edge_table[B[i]].add(left)
+        edge_table[B[i]].add(right)
+    
+    remaining = set(A)
+    child = []
+    curr_index = random.randint(0, n-1)
+    curr = A[curr_index]
+
+    #construct tour now we have adjacency table
+    while len(child) < n:
+        child.append(curr)
+        remaining.remove(curr)
+        for neighbour in edge_table[curr]:
+            edge_table[neighbour].discard(curr)
+
+        next_candidates = edge_table[curr]
+
+        if next_candidates:
+            min_degree = min(len(edge_table[c]) for c in next_candidates)
+            best = [c for c in next_candidates if len(edge_table[c]) == min_degree]
+            next_city = random.choice(best)
+        else:
+            if not remaining:
+                break
+            next_city = random.choice(list(remaining))
+        edge_table[curr] = set()
+        curr = next_city
+    return child
+
+def two_opt_first_improvement(child, dist_matrix):
+    n = len(child)
+    improved = True
+
+    while improved:
+        improved = False
+        for i in range(n-1):
+            for j in range(i+2, n):
+                if i == 0 and j == n-1:
+                    continue
+                A = child[i]
+                B = child[i+1]
+                C = child[j]
+                D = child[(j+1) % n]
+
+                #find cost difference
+                delta = dist_matrix[A][C] + dist_matrix[B][D] - dist_matrix[A][B] - dist_matrix[C][D]
+                if delta < 0:
+                    child[i+1:j+1] = child[i+1:j+1][::-1]
+                    improved = True
+                    break
+            if improved:
+                break
+    return child
 
 #python3 AlgAenhanced.py
 
@@ -485,27 +571,29 @@ def new_pop(population, probabilities, costs, dist_matrix):
         if random.random() < 0.05:
             C2 = mutate(C2)
         '''
-        #use OX crossover
+        #use ERX crossover
         if random.random() < p_crossover:
-            C1 = OX_crossover(A, B)
-            C2 = OX_crossover(B, A)
+            C1 = ERX_crossover(A, B)
+            C2 = ERX_crossover(B, A)
         else:
             C1 = A[:]
             C2 = B[:]
-        
-        if random.random() < p_mutate:
-            C1 = mutate(C1)
-        if random.random() < p_mutate:
-            C2 = mutate(C2)
 
+        chosen_child = C2
         if path_cost(C1, dist_matrix=dist_matrix) < path_cost(C2, dist_matrix=dist_matrix):
-            new_population.append(C1)
-        else:
-            new_population.append(C2)
+            chosen_child = C1
+        if random.random() < pm:
+            chosen_child = mutate(chosen_child)
+        new_population.append(chosen_child)
+        
     return new_population
 
+'''
 p_crossover = 0.8
-p_mutate = 0.05
+pm_initial = 0.08
+pm_min = 0.01
+pm_max = 0.20
+stagnation_limit = 15
 
 pop = initial_pop(pop_size=pop_size, num_cities=num_cities)
 population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
@@ -525,8 +613,8 @@ final_costs = [cost for cost, tour in final]
 print(final_tours)
 print(final_costs)
 tour = final_tours[0]
-tour_length = final_costs[0]
-
+tour_length = final_costs[0] 
+'''
 
 
 

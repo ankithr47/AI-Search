@@ -458,17 +458,16 @@ def new_pop(population, probabilities, costs, dist_matrix):
         C1 = make_distinct(C1)
         C2 = make_distinct(C2)
 
-        if random.random() < 0.05:
-            C1 = mutate(C1)
-        if random.random() < 0.05:
-            C2 = mutate(C2)
-
-        if path_cost(C1, dist_matrix) < path_cost(C2, dist_matrix):
-            new_population.append(C1)
-        else:
-            new_population.append(C2)
+        chosen_child = C2
+        if path_cost(C1, dist_matrix=dist_matrix) < path_cost(C2, dist_matrix=dist_matrix):
+            chosen_child = C1
+        if random.random() < p_mutate:
+            chosen_child = mutate(chosen_child)
 
     return new_population
+
+p_mutate = 0.02
+p_crossover = 0.8
 
 pop = initial_pop(pop_size=pop_size, num_cities=num_cities)
 population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
@@ -480,7 +479,6 @@ for i in range(max_it):
     population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
     fitness = fitness_array(population_cost)
     probabilities = normalise(fitness=fitness)
-
 
 final = heapq.nsmallest(5, zip(population_cost, pop))
 final_tours = [tour for cost, tour in final]
