@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile017.txt"
+input_file = "AISearchfile175.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -519,11 +519,12 @@ def ERX_crossover(A, B):
         curr = next_city
     return child
 
-def two_opt_first_improvement(child, dist_matrix):
+def two_opt_first_improvement(child, dist_matrix, max_improvements=50):
     n = len(child)
     improved = True
+    improvement_count = 0
 
-    while improved:
+    while improved and improvement_count < max_improvements:
         improved = False
         for i in range(n-1):
             for j in range(i+2, n):
@@ -538,6 +539,7 @@ def two_opt_first_improvement(child, dist_matrix):
                 delta = dist_matrix[A][C] + dist_matrix[B][D] - dist_matrix[A][B] - dist_matrix[C][D]
                 if delta < 0:
                     child[i+1:j+1] = child[i+1:j+1][::-1]
+                    improvement_count += 1
                     improved = True
                     break
             if improved:
@@ -546,31 +548,22 @@ def two_opt_first_improvement(child, dist_matrix):
 
 #python3 AlgAenhanced.py
 
-def new_pop(population, probabilities, costs, dist_matrix):
+def new_pop(population, probabilities, costs, dist_matrix, pm, p_crossover, p_two_opt):
     new_population = []
 
     elite_pairs = heapq.nsmallest(10, zip(costs, population))
-    elite = [tour.copy() for cost, tour in elite_pairs]
-    new_population = new_population + elite
+    elite = []
+    for cost, tour in elite_pairs:
+        improved_tour = two_opt_first_improvement(tour.copy(), dist_matrix)
+        elite.append(improved_tour)
+    new_population.extend(elite)
 
-    parents = random.choices(population, probabilities, k=1980)
+    parents = random.choices(population, weights=probabilities, k=990)
     for i in range(0, len(parents)-1, 2):
         A = parents[i]
         B = parents[i+1]
         # 1 4 3 5 6 8, 2 5 7 8 9 6, slicing [:len(array)] includes everything up to and excluding len(array), ie only up to len(array)-1
         #commented out code is for one_point_crossover
-        '''
-        C1, C2 = one_point_crossover(A, B)
-
-        #make splits valid tours
-        C1 = make_distinct(C1)
-        C2 = make_distinct(C2)
-
-        if random.random() < 0.05:
-            C1 = mutate(C1)
-        if random.random() < 0.05:
-            C2 = mutate(C2)
-        '''
         #use ERX crossover
         if random.random() < p_crossover:
             C1 = ERX_crossover(A, B)
@@ -579,20 +572,34 @@ def new_pop(population, probabilities, costs, dist_matrix):
             C1 = A[:]
             C2 = B[:]
 
-        chosen_child = C2
-        if path_cost(C1, dist_matrix=dist_matrix) < path_cost(C2, dist_matrix=dist_matrix):
-            chosen_child = C1
         if random.random() < pm:
-            chosen_child = mutate(chosen_child)
-        new_population.append(chosen_child)
+            C1 = inverse_mutate(C1)
+        if random.random() < pm:
+            C2 = inverse_mutate(C2)
+        
+        if random.random() < p_two_opt:
+            C1 = two_opt_first_improvement(C1, dist_matrix)
+        if random.random() < p_two_opt:
+            C2 = two_opt_first_improvement(C2, dist_matrix)
+        new_population.append(C1)
+        new_population.append(C2)
         
     return new_population
 
-'''
+
+if pop_size == 1000 or pop_size == 500:
+    p_two_opt = 0.05
+else:
+    p_two_opt = 0.10
+#apply two-opt to the best individual and probabilistically (5%)
+
+
 p_crossover = 0.8
 pm_initial = 0.08
+pm = pm_initial
 pm_min = 0.01
 pm_max = 0.20
+stagnation_count = 0
 stagnation_limit = 15
 
 pop = initial_pop(pop_size=pop_size, num_cities=num_cities)
@@ -600,11 +607,26 @@ population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
 fitness = fitness_array(population_cost)
 probabilities = normalise(fitness=fitness)
 
+global_best = max(fitness)
+
 for i in range(max_it):
-    pop = new_pop(population=pop, probabilities=probabilities, costs=population_cost, dist_matrix=dist_matrix)
+    pop = new_pop(population=pop, probabilities=probabilities, costs=population_cost, dist_matrix=dist_matrix, pm=pm, 
+    p_crossover=p_crossover, p_two_opt=p_two_opt)
     population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
     fitness = fitness_array(population_cost)
     probabilities = normalise(fitness=fitness)
+
+    best_current = max(fitness)
+    
+    global_best, stagnation_count, pm = mutate_rate_adapt_fit(best_fitness_current=best_current,
+                                                               best_fitness_global=global_best,
+                                                               stagnation_count=stagnation_count,
+                                                               stagnation_limit=stagnation_limit,
+                                                               pm=pm,
+                                                               pm_min=pm_min,
+                                                               pm_max=pm_max
+                                                               )
+    
 
 
 final = heapq.nsmallest(5, zip(population_cost, pop))
@@ -614,7 +636,7 @@ print(final_tours)
 print(final_costs)
 tour = final_tours[0]
 tour_length = final_costs[0] 
-'''
+
 
 
 
