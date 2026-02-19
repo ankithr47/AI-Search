@@ -358,8 +358,7 @@ added_note = ""
 import random
 random.seed(0)
 
-#let N be number of ants, set to num_cities initially
-# python3 AlgBbasic.py
+
 max_it = 300
 if num_cities < 60:
     num_ants = num_cities
@@ -427,6 +426,7 @@ def update_pheromone(pheromones, tours, lengths, rho):
             j = tour[r + 1]
             pheromones[i][j] += 1 / length
         pheromones[tour[-1]][tour[0]] += 1 / length
+
 
 def ant_system(dist_matrix, max_it, num_ants, num_cities):
     Lnn = nn_tour_length(dist_matrix=dist_matrix)
