@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile048.txt"
+input_file = "AISearchfile042.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -413,7 +413,7 @@ def make_tour(start_city, pheromones, heur_desire, alpha, beta, num_cities):
     return tour, length
 
 def update_pheromone(pheromones, tours, lengths, rho):
-    n = len([pheromones])
+    n = len(pheromones)
     #Evaporation
     for i in range(n):
         for j in range(n):
@@ -426,8 +426,7 @@ def update_pheromone(pheromones, tours, lengths, rho):
             i = tour[r]
             j = tour[r + 1]
             pheromones[i][j] += 1 / length
-        pheromones[i][j] += 1 / length
-    pheromones[tour[-1]][tour[0]] += 1 / length
+        pheromones[tour[-1]][tour[0]] += 1 / length
 
 def ant_system(dist_matrix, max_it, num_ants, num_cities):
     Lnn = nn_tour_length(dist_matrix=dist_matrix)

@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile012.txt"
+input_file = "AISearchfile175.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -366,6 +366,13 @@ if num_cities < 60:
 else:
     num_ants = 60
 
+#enhancement: dual-population ant roles, exploiters and explorers
+#adaptively proportions of exploiters and explorers are modified based on stagnation
+def dual_pop(p_exploit, num_ants):
+    num_exploit = int(p_exploit * num_ants)
+    num_explore = num_ants - num_exploit
+    return num_exploit, num_explore
+
 def nn_tour_length(dist_matrix=dist_matrix):
     start = 0
     visited = {start}
@@ -386,7 +393,7 @@ def nn_tour_length(dist_matrix=dist_matrix):
     length += dist_matrix[curr][start]
     return length
 
-def make_tour(start_city, pheromones, heur_desire, alpha, beta, num_cities):
+def make_tour(start_city, pheromones, heur_desire, num_cities, alpha, beta):
     visited = {start_city}
     tour = [start_city]
     curr = start_city
@@ -399,8 +406,6 @@ def make_tour(start_city, pheromones, heur_desire, alpha, beta, num_cities):
                 p = (pheromones[curr][j] ** alpha) * (heur_desire[curr][j] ** beta)
                 probabilities.append(p)
                 candidates.append(j)
-        total = sum(probabilities)
-        probabilities = [p / total for p in probabilities]
         next_city = random.choices(candidates, weights=probabilities)[0]
         
         tour.append(next_city)
@@ -412,8 +417,8 @@ def make_tour(start_city, pheromones, heur_desire, alpha, beta, num_cities):
     length += dist_matrix[tour[-1]][tour[0]]
     return tour, length
 
-def update_pheromone(pheromones, tours, lengths, rho):
-    n = len([pheromones])
+def update_pheromone(pheromones, tours, lengths, rho, ):
+    n = len(pheromones)
     #Evaporation
     for i in range(n):
         for j in range(n):
@@ -426,10 +431,9 @@ def update_pheromone(pheromones, tours, lengths, rho):
             i = tour[r]
             j = tour[r + 1]
             pheromones[i][j] += 1 / length
-        pheromones[i][j] += 1 / length
-    pheromones[tour[-1]][tour[0]] += 1 / length
+        pheromones[tour[-1]][tour[0]] += 1 / length
 
-def ant_system(dist_matrix, max_it, num_ants, num_cities):
+def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_exploit, stagnation_threshold = 40):
     Lnn = nn_tour_length(dist_matrix=dist_matrix)
     tau0 = num_ants / Lnn
     pheromones = [[tau0 for _ in range(num_cities)] for _ in range(num_cities)]
@@ -442,28 +446,51 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities):
                 heur_desire[i][j] = 1 / distance
             else:
                 heur_desire[i][j] = 0
-    alpha = 1
-    beta = 3
+    alpha_exploit = 1.5
+    beta_exploit = 2.5
+    alpha_explore = 0.8
+    beta_explore = 3.5
     rho = 0.5
     best_tour = None
     best_length = float('inf')
+    stagnation_count = 0
     for t in range(max_it):
+        num_exploit, num_explore = dual_pop(p_exploit=p_exploit, num_ants=num_ants)
         tours = []
         lengths = []
+        improved = False
+
         for i in range(num_ants):
+            if i < num_exploit:
+                alpha, beta = alpha_exploit, beta_exploit
+            else:
+                alpha, beta = alpha_explore, beta_explore
+
             start_city = i % num_cities
-            tour, length = make_tour(start_city, pheromones, heur_desire, alpha, beta, num_cities)
+
+            tour, length = make_tour(start_city, pheromones, heur_desire, num_cities, alpha, beta)
             tours.append(tour)
             lengths.append(length)
-            
+
             if length < best_length:
                 best_length = length
                 best_tour = tour
+                improved = True
         update_pheromone(pheromones, tours, lengths, rho)
+        #stagnation adaptation
+        if improved:
+            stagnation_count = 0
+            p_exploit = min(0.8, p_exploit + 0.02)
+        else:
+            stagnation_count += 1
+            if stagnation_count >= stagnation_threshold:
+                p_exploit = max(0.2, p_exploit - 0.05)
+                stagnation_count = 0
+        
     
     return best_tour, best_length
 
-tour, tour_length = ant_system(dist_matrix, max_it, num_ants, num_cities)
+tour, tour_length = ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count=0, p_exploit=0.6)
 
 
 
