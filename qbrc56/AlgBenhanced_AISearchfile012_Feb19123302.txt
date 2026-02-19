@@ -2,7 +2,7 @@ USER = qbrc56 (Ankith Rangan),
 ALGORITHM CODE = AC, NAME OF CITY-FILE = AISearchfile012.txt,
 SIZE = 12, TOUR LENGTH = 56,
 0,10,5,8,9,11,1,2,6,3,7,4,
-NOTE = The parameter values are 'max_it' = 200 and 'num_ants' = 12.
-RUN-TIME = 0.1 seconds.
-DATE-TIME = 19/02/2026-09:53:25.
-CERTIFICATE = 1686.
+NOTE = The parameter values are 'max_it' = 600 and 'num_ants' = 12.
+RUN-TIME = 0.2 seconds.
+DATE-TIME = 19/02/2026-12:33:02.
+CERTIFICATE = 1673.

@@ -359,7 +359,7 @@ import random
 random.seed(0)
 
 #let N be number of ants, set to num_cities initially
-# python3 AlgBbasic.py
+# python3 AlgBenhanced.py
 max_it = 600
 if num_cities < 60:
     num_ants = num_cities
@@ -498,7 +498,7 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
     best_length = float('inf')
     stagnation_count = 0
     for t in range(max_it):
-        num_exploit, num_explore = dual_pop(p_exploit=p_exploit, num_ants=num_ants)
+        #num_exploit, num_explore = dual_pop(p_exploit=p_exploit, num_ants=num_ants)
         tours = []
         lengths = []
         improved = False
@@ -510,6 +510,9 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
             else:
                 alpha, beta = alpha_explore, beta_explore
             '''
+            #above commented out code explored and used a dual population of 
+            #exploiters and explorers, and dynamically increased
+            #ratio of explorers to exploiters when stagnation increased
             alpha, beta = alpha_normal, beta_normal
             start_city = i % num_cities
 
@@ -548,9 +551,11 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
         update_pheromone(pheromones, tours, lengths, rho)
         #apply_max_min(pheromones, best_length, num_cities)
 
+        '''
         if (t+1) % 5 == 0:
             print(f'Iteration {t+1}: rho = {rho} , Best length so far = {best_length}')
-
+        '''
+        #used iterations as above to inspect how rho was changing as iterations went on
     return best_tour, best_length
 
 tour, tour_length = ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count=0, p_exploit=0.6)

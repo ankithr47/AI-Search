@@ -447,6 +447,9 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities):
     best_tour = None
     best_length = float('inf')
     for t in range(max_it):
+        time_limit = 56
+        if time.time() - start_time > time_limit:
+            break
         tours = []
         lengths = []
         for i in range(num_ants):

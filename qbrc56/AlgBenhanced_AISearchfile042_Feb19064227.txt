@@ -1,8 +1,0 @@
-USER = qbrc56 (Ankith Rangan),
-ALGORITHM CODE = AC, NAME OF CITY-FILE = AISearchfile042.txt,
-SIZE = 42, TOUR LENGTH = 1384,
-20,29,19,11,21,35,16,13,15,33,25,37,41,38,32,39,12,2,14,10,0,24,3,9,1,7,27,30,28,6,22,5,34,23,18,40,8,17,36,31,26,4,
-NOTE = The parameter values are 'max_it' = 300 and 'num_ants' = 42.
-RUN-TIME = 2.3 seconds.
-DATE-TIME = 19/02/2026-06:42:27.
-CERTIFICATE = 2149.

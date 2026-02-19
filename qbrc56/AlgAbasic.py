@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile175.txt"
+input_file = "AISearchfile535.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -359,6 +359,12 @@ import heapq
 import copy
 
 pop_size = 1000
+if num_cities <= 100:
+    pop_size = 600
+elif num_cities <= 300:
+    pop_size = 300
+else:
+    pop_size = 200
 max_it = 500
 random.seed(42)
 
@@ -466,6 +472,8 @@ def new_pop(population, probabilities, costs, dist_matrix):
 
     return new_population
 
+time_limit = 55
+
 p_mutate = 0.02
 p_crossover = 0.8
 
@@ -475,6 +483,8 @@ fitness = fitness_array(population_cost)
 probabilities = normalise(fitness=fitness)
 
 for i in range(max_it):
+    if time.time() - start_time > time_limit:
+        break
     pop = new_pop(population=pop, probabilities=probabilities, costs=population_cost, dist_matrix=dist_matrix)
     population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
     fitness = fitness_array(population_cost)
@@ -486,8 +496,6 @@ final_costs = [cost for cost, tour in final]
 tour = final_tours[0]
 tour_length = final_costs[0]
 #print(population)
-
-# ADD TIMEOUT FUNCTIONALITY, TO ENSURE CORRECTNESS AS CORRECTNESS IS MOST VITAL HERE
 
 # python3 AlgAbasic.py
 
