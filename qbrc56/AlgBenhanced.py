@@ -427,10 +427,11 @@ def update_pheromone(pheromones, tours, lengths, rho, ):
     for k in range(len(tours)):
         tour = tours[k]
         length = lengths[k]
+        de = 1 / length
         for r in range(len(tour)-1):
             i = tour[r]
             j = tour[r + 1]
-            pheromones[i][j] += 1 / length
+            pheromones[i][j] += de
         pheromones[tour[-1]][tour[0]] += 1 / length
 
 def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_exploit, stagnation_threshold = 40):
@@ -450,7 +451,8 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
     beta_exploit = 2.5
     alpha_explore = 0.8
     beta_explore = 3.5
-    rho = 0.5
+    rho_min = 0.3
+    rho_max = 0.8
     best_tour = None
     best_length = float('inf')
     stagnation_count = 0
@@ -476,7 +478,6 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
                 best_length = length
                 best_tour = tour
                 improved = True
-        update_pheromone(pheromones, tours, lengths, rho)
         #stagnation adaptation
         if improved:
             stagnation_count = 0
@@ -485,9 +486,13 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
             stagnation_count += 1
             if stagnation_count >= stagnation_threshold:
                 p_exploit = max(0.2, p_exploit - 0.05)
-                stagnation_count = 0
-        
-    
+
+        #stagnation driven adaptive evaporation, changing rho
+        rho = rho_min + (rho_max - rho_min) * min(stagnation_count / stagnation_threshold, 1)
+        update_pheromone(pheromones, tours, lengths, rho)
+        if (t+1) % 5 == 0:
+            print(f'Iteration {t+1}: rho = {rho} , Best length so far = {best_length}')
+
     return best_tour, best_length
 
 tour, tour_length = ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count=0, p_exploit=0.6)
