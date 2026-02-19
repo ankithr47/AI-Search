@@ -355,12 +355,18 @@ added_note = ""
 ############
 ############ END OF SECTOR 9 (IGNORE THIS COMMENT)
 
-#potential enhancements: 2-opt local search, OX crossover
 
 import heapq
 import copy
 
+#population sizes were adjusted via experimentation
 pop_size = 1000
+if num_cities <= 100:
+    pop_size = 600
+elif num_cities <= 300:
+    pop_size = 300
+else:
+    pop_size = 200
 max_it = 500
 random.seed(42)
 
@@ -387,7 +393,7 @@ def pop_cost(population, dist_matrix):
         cost_array.append(path_cost(tour, dist_matrix=dist_matrix))
     return cost_array
 
-#calculate fitness of array of path costws
+#calculate fitness of array of path costs
 def fitness_array(costs):
     epsilon = 1e-5
     tau = max(costs) + epsilon
@@ -403,24 +409,6 @@ def normalise(fitness):
     for i in range(len(fitness)):
         fitness[i] = float(fitness[i] / total)
     return fitness
-
-def make_distinct(child):
-    used = set()
-    next_candidate = 0
-    for i in range(len(child)):
-        if child[i] not in used:
-            used.add(child[i])
-        else:
-            while next_candidate in used:
-                next_candidate += 1
-            child[i] = next_candidate
-            used.add(next_candidate)
-    return child
-
-def mutate(child):
-    i, j = random.sample(range(len(child)), 2)
-    child[i], child[j] = child[j], child[i]
-    return child
 
 def inverse_mutate(child):
     n = len(child)
@@ -446,17 +434,6 @@ def mutate_rate_adapt_fit(best_fitness_current, best_fitness_global, stagnation_
     else:
         pm = max(pm*0.98, pm_min)
     return best_fitness_global, stagnation_count, pm
-
-def one_point_crossover(A, B):
-    split_index = random.randint(1, len(A) - 1)
-    A1 = A[:split_index]
-    A2 = A[split_index:]
-    B1 = B[:split_index]
-    B2 = B[split_index:]
-    #combine the splits
-    C1 = A1 + B2
-    C2 = B1 + A2
-    return C1, C2
 
 def OX_crossover(A,B):
     # 0 <= split1 < split2 < n split definition
@@ -527,7 +504,7 @@ def two_opt_first_improvement(child, dist_matrix, max_improvements=50):
     while improved and improvement_count < max_improvements:
         improved = False
         for i in range(n-1):
-            for j in range(i+2, n):
+            for j in range(i+2, min(i+20, n)):
                 if i == 0 and j == n-1:
                     continue
                 A = child[i]
@@ -546,28 +523,39 @@ def two_opt_first_improvement(child, dist_matrix, max_improvements=50):
                 break
     return child
 
+def tourny_selec(population, costs, stagnation_count, stagnation_limit, tournament_size):
+    if stagnation_count > stagnation_limit:
+        tournament_size += 2
+    selec = random.sample(range(len(population)), tournament_size)
+    best_index = min(selec, key=lambda i: costs[i])
+    return population[best_index]
+
 #python3 AlgAenhanced.py
 
-def new_pop(population, probabilities, costs, dist_matrix, pm, p_crossover, p_two_opt):
+def new_pop(population, costs, dist_matrix, stagnation_count, stagnation_limit, pm, p_crossover, p_two_opt, p_erx=0.7):
     new_population = []
-
     elite_pairs = heapq.nsmallest(10, zip(costs, population))
     elite = []
+    #apply two-opt to the elites
     for cost, tour in elite_pairs:
         improved_tour = two_opt_first_improvement(tour.copy(), dist_matrix)
         elite.append(improved_tour)
     new_population.extend(elite)
 
-    parents = random.choices(population, weights=probabilities, k=990)
-    for i in range(0, len(parents)-1, 2):
-        A = parents[i]
-        B = parents[i+1]
+    target_size = len(population)
+    while len(new_population) < target_size:
         # 1 4 3 5 6 8, 2 5 7 8 9 6, slicing [:len(array)] includes everything up to and excluding len(array), ie only up to len(array)-1
         #commented out code is for one_point_crossover
         #use ERX crossover
+        A = tourny_selec(population, costs, stagnation_count, stagnation_limit, tournament_size=3)
+        B = tourny_selec(population, costs, stagnation_count, stagnation_limit, tournament_size=3)
         if random.random() < p_crossover:
-            C1 = ERX_crossover(A, B)
-            C2 = ERX_crossover(B, A)
+            if random.random() < p_erx:
+                C1 = ERX_crossover(A, B)
+                C2 = ERX_crossover(B, A)
+            else:
+                C1 = OX_crossover(A, B)
+                C2 = OX_crossover(B, A)
         else:
             C1 = A[:]
             C2 = B[:]
@@ -577,13 +565,13 @@ def new_pop(population, probabilities, costs, dist_matrix, pm, p_crossover, p_tw
         if random.random() < pm:
             C2 = inverse_mutate(C2)
         
+        #apply 2-opt to top 5% children
         if random.random() < p_two_opt:
             C1 = two_opt_first_improvement(C1, dist_matrix)
         if random.random() < p_two_opt:
             C2 = two_opt_first_improvement(C2, dist_matrix)
         new_population.append(C1)
         new_population.append(C2)
-        
     return new_population
 
 
@@ -591,8 +579,9 @@ if pop_size == 1000 or pop_size == 500:
     p_two_opt = 0.05
 else:
     p_two_opt = 0.10
-#apply two-opt to the best individual and probabilistically (5%)
 
+
+time_limit = 56
 
 p_crossover = 0.8
 pm_initial = 0.08
@@ -607,14 +596,32 @@ population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
 fitness = fitness_array(population_cost)
 probabilities = normalise(fitness=fitness)
 
+best = min(population_cost)
+best_ind = population_cost.index(best)
+best_tour = pop[best_ind][:]
+
 global_best = max(fitness)
 
 for i in range(max_it):
-    pop = new_pop(population=pop, probabilities=probabilities, costs=population_cost, dist_matrix=dist_matrix, pm=pm, 
+    if time.time() - start_time > time_limit:
+        break
+
+    if stagnation_count > stagnation_limit:
+        p_erx = 0.4 #so that diversity is increased
+    else:
+        p_erx = 0.7
+    
+    pop = new_pop(population=pop, costs=population_cost, dist_matrix=dist_matrix, stagnation_count=stagnation_count, stagnation_limit=stagnation_limit, pm=pm, 
     p_crossover=p_crossover, p_two_opt=p_two_opt)
     population_cost = pop_cost(population=pop, dist_matrix=dist_matrix)
     fitness = fitness_array(population_cost)
-    probabilities = normalise(fitness=fitness)
+
+    curr_best_cost = min(population_cost)
+    curr_best_ind = population_cost.index(curr_best_cost)
+
+    if curr_best_cost < best:
+        best = curr_best_cost
+        best_tour = pop[curr_best_ind][:]
 
     best_current = max(fitness)
     

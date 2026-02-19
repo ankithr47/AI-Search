@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile175.txt"
+input_file = "AISearchfile535.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -360,7 +360,7 @@ random.seed(0)
 
 #let N be number of ants, set to num_cities initially
 # python3 AlgBbasic.py
-max_it = 300
+max_it = 600
 if num_cities < 60:
     num_ants = num_cities
 else:
@@ -417,24 +417,63 @@ def make_tour(start_city, pheromones, heur_desire, num_cities, alpha, beta):
     length += dist_matrix[tour[-1]][tour[0]]
     return tour, length
 
-def update_pheromone(pheromones, tours, lengths, rho, ):
+def update_pheromone(pheromones, tours, lengths, rho):
     n = len(pheromones)
     #Evaporation
     for i in range(n):
         for j in range(n):
             pheromones[i][j] *= (1 - rho)
     #Deposit
-    for k in range(len(tours)):
-        tour = tours[k]
-        length = lengths[k]
-        de = 1 / length
-        for r in range(len(tour)-1):
-            i = tour[r]
-            j = tour[r + 1]
-            pheromones[i][j] += de
-        pheromones[tour[-1]][tour[0]] += 1 / length
+    index = lengths.index(min(lengths))
+    tour = tours[index]
+    length = lengths[index]
+    de = 1 / length
+    for r in range(len(tour)-1):
+        i = tour[r]
+        j = tour[r + 1]
+        pheromones[i][j] += de
+    pheromones[tour[-1]][tour[0]] += de
 
-def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_exploit, stagnation_threshold = 40):
+def apply_max_min(pheromones, best_length, num_cities, a=10):
+    tau_max = 1 / (max(best_length, 1e-10))
+    tau_min = tau_max / a
+
+    for i in range(num_cities):
+        for j in range(num_cities):
+            if pheromones[i][j] > tau_max:
+                pheromones[i][j] = tau_max
+            elif pheromones[i][j] < tau_min:
+                pheromones[i][j] = tau_min
+
+def two_opt_first_improvement(child, dist_matrix, max_improvements=7):
+    n = len(child)
+    improved = True
+    improvement_count = 0
+
+    while improved and improvement_count < max_improvements:
+        improved = False
+        for i in range(n-1):
+            for j in range(i+2, n):
+                if i == 0 and j == n-1:
+                    continue
+                A = child[i]
+                B = child[i+1]
+                C = child[j]
+                D = child[(j+1) % n]
+
+                #find cost difference
+                delta = dist_matrix[A][C] + dist_matrix[B][D] - dist_matrix[A][B] - dist_matrix[C][D]
+                if delta < 0:
+                    child[i+1:j+1] = child[i+1:j+1][::-1]
+                    improvement_count += 1
+                    improved = True
+                    break
+            if improved:
+                break
+    return child
+
+
+def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_exploit, stagnation_threshold = 20):
     Lnn = nn_tour_length(dist_matrix=dist_matrix)
     tau0 = num_ants / Lnn
     pheromones = [[tau0 for _ in range(num_cities)] for _ in range(num_cities)]
@@ -451,8 +490,10 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
     beta_exploit = 2.5
     alpha_explore = 0.8
     beta_explore = 3.5
-    rho_min = 0.3
-    rho_max = 0.8
+    alpha_normal = 1
+    beta_normal = 3
+    rho_min = 0.2
+    rho_max = 0.6
     best_tour = None
     best_length = float('inf')
     stagnation_count = 0
@@ -463,11 +504,13 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
         improved = False
 
         for i in range(num_ants):
+            '''
             if i < num_exploit:
                 alpha, beta = alpha_exploit, beta_exploit
             else:
                 alpha, beta = alpha_explore, beta_explore
-
+            '''
+            alpha, beta = alpha_normal, beta_normal
             start_city = i % num_cities
 
             tour, length = make_tour(start_city, pheromones, heur_desire, num_cities, alpha, beta)
@@ -478,18 +521,33 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
                 best_length = length
                 best_tour = tour
                 improved = True
+
+        #enhancement: here i am using memetic aco
+        index = lengths.index(min(lengths))
+        tour_copy = tours[index][:]
+        better_tour = two_opt_first_improvement(tour_copy, dist_matrix)
+        improved_length = 0
+        for i in range(num_cities - 1):
+            improved_length += dist_matrix[better_tour[i]][better_tour[i+1]]
+        improved_length += dist_matrix[better_tour[-1]][better_tour[0]]
+        tours[index] = better_tour
+        lengths[index] = improved_length
+
+        if improved_length < best_length:
+            best_length = improved_length
+            best_tour = better_tour
+            improved = True
         #stagnation adaptation
         if improved:
             stagnation_count = 0
-            p_exploit = min(0.8, p_exploit + 0.02)
         else:
             stagnation_count += 1
-            if stagnation_count >= stagnation_threshold:
-                p_exploit = max(0.2, p_exploit - 0.05)
 
         #stagnation driven adaptive evaporation, changing rho
         rho = rho_min + (rho_max - rho_min) * min(stagnation_count / stagnation_threshold, 1)
         update_pheromone(pheromones, tours, lengths, rho)
+        #apply_max_min(pheromones, best_length, num_cities)
+
         if (t+1) % 5 == 0:
             print(f'Iteration {t+1}: rho = {rho} , Best length so far = {best_length}')
 
@@ -497,7 +555,7 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count, p_ex
 
 tour, tour_length = ant_system(dist_matrix, max_it, num_ants, num_cities, stagnation_count=0, p_exploit=0.6)
 
-
+#python3 AlgBenhanced.py
 
 
 
