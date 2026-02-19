@@ -158,7 +158,7 @@ def read_in_algorithm_codes_and_tariffs(alg_codes_file):
 ############
 ############ END OF SECTOR 0 (IGNORE THIS COMMENT)
 
-input_file = "AISearchfile175.txt"
+input_file = "AISearchfile048.txt"
 
 ############ START OF SECTOR 1 (IGNORE THIS COMMENT)
 ############
@@ -356,13 +356,15 @@ added_note = ""
 ############ END OF SECTOR 9 (IGNORE THIS COMMENT)
 
 import random
-import math
 random.seed(0)
 
 #let N be number of ants, set to num_cities initially
 # python3 AlgBbasic.py
-max_it = 250
-num_ants = 60
+max_it = 300
+if num_cities < 60:
+    num_ants = num_cities
+else:
+    num_ants = 60
 
 def nn_tour_length(dist_matrix=dist_matrix):
     start = 0
@@ -384,7 +386,7 @@ def nn_tour_length(dist_matrix=dist_matrix):
     length += dist_matrix[curr][start]
     return length
 
-def construct_tour(start_city, tau, eta, alpha, beta, num_cities):
+def make_tour(start_city, pheromones, heur_desire, alpha, beta, num_cities):
     visited = {start_city}
     tour = [start_city]
     curr = start_city
@@ -394,7 +396,7 @@ def construct_tour(start_city, tau, eta, alpha, beta, num_cities):
         candidates = []
         for j in range(num_cities):
             if j not in visited:
-                p = (tau[curr][j] ** alpha) * (eta[curr][j] ** beta)
+                p = (pheromones[curr][j] ** alpha) * (heur_desire[curr][j] ** beta)
                 probabilities.append(p)
                 candidates.append(j)
         total = sum(probabilities)
@@ -410,12 +412,12 @@ def construct_tour(start_city, tau, eta, alpha, beta, num_cities):
     length += dist_matrix[tour[-1]][tour[0]]
     return tour, length
 
-def update_pheromone(tau, tours, lengths, rho):
-    n = len(tau)
+def update_pheromone(pheromones, tours, lengths, rho):
+    n = len([pheromones])
     #Evaporation
     for i in range(n):
         for j in range(n):
-            tau[i][j] *= (1 - rho)
+            pheromones[i][j] *= (1 - rho)
     #Deposit
     for k in range(len(tours)):
         tour = tours[k]
@@ -423,22 +425,23 @@ def update_pheromone(tau, tours, lengths, rho):
         for r in range(len(tour)-1):
             i = tour[r]
             j = tour[r + 1]
-            tau[i][j] += 1 / length
-        tau[i][j] += 1 / length
-    tau[tour[-1]][tour[0]] += 1 / length
+            pheromones[i][j] += 1 / length
+        pheromones[i][j] += 1 / length
+    pheromones[tour[-1]][tour[0]] += 1 / length
 
 def ant_system(dist_matrix, max_it, num_ants, num_cities):
     Lnn = nn_tour_length(dist_matrix=dist_matrix)
     tau0 = num_ants / Lnn
-    tau = [[tau0 for _ in range(num_cities)] for _ in range(num_cities)]
-    eta = [[_ for _ in range(num_cities)] for _ in range(num_cities)]
+    pheromones = [[tau0 for _ in range(num_cities)] for _ in range(num_cities)]
+    heur_desire = [[_ for _ in range(num_cities)] for _ in range(num_cities)]
     for i in range(num_cities):
         for j in range(num_cities):
             if i != j:
-                d = dist_matrix[i][j]
-                eta[i][j] = 1 / dist_matrix[i][j]
+                e = 1e-10
+                distance = max(dist_matrix[i][j], e)
+                heur_desire[i][j] = 1 / distance
             else:
-                eta[i][j] = 0
+                heur_desire[i][j] = 0
     alpha = 1
     beta = 3
     rho = 0.5
@@ -449,14 +452,14 @@ def ant_system(dist_matrix, max_it, num_ants, num_cities):
         lengths = []
         for i in range(num_ants):
             start_city = i % num_cities
-            tour, length = construct_tour(start_city, tau, eta, alpha, beta, num_cities)
+            tour, length = make_tour(start_city, pheromones, heur_desire, alpha, beta, num_cities)
             tours.append(tour)
             lengths.append(length)
             
             if length < best_length:
                 best_length = length
                 best_tour = tour
-        update_pheromone(tau, tours, lengths, rho)
+        update_pheromone(pheromones, tours, lengths, rho)
     
     return best_tour, best_length
 
